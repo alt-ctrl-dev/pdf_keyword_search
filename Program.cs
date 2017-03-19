@@ -59,8 +59,14 @@ namespace ElasticSearch
 		static void ProcessFile(string file, bool deletefile)
 		{
 			Console.WriteLine("Processing file {0}", file);
-			
-			//Todo
+
+			var id = Guid.NewGuid().ToString();
+			client.Index(new Document
+			{
+				Id =id,
+				Path = file,
+				Content = Convert.ToBase64String(File.ReadAllBytes(file))
+			}, i => i.Pipeline("attachments").Index(documentsIndex).Id(id));
 
 			if(deletefile)File.Delete(file);
 			Console.WriteLine("File {0} processed", file);
