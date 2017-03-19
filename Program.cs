@@ -23,6 +23,7 @@ namespace ElasticSearch
 				if (Directory.Exists(roothpath))
 				{
 					// This path is a directory
+					CreateMapping();
 					ProcessDirectory(roothpath);
 				}
 				else
@@ -58,10 +59,69 @@ namespace ElasticSearch
 		static void ProcessFile(string file, bool deletefile)
 		{
 			Console.WriteLine("Processing file {0}", file);
-
-			//todo
+			
+			//Todo
 
 			if(deletefile)File.Delete(file);
 			Console.WriteLine("File {0} processed", file);
+		}
+		
+				static void CreateMapping()
+		{
+			var mappingResponse = client.GetMapping<Document>((arg) => arg.Index(documentsIndex));
+			Console.WriteLine("Checking to see if mapping is required");
+			if (!mappingResponse.Mappings.ContainsKey(documentsIndex))
+			{
+				Console.WriteLine("Creating mapping for {0}", documentsIndex);
+				var indexResponse = client.CreateIndex(documentsIndex, c => c
+				  .Settings(s => s
+					.Analysis(a => a
+					  .Analyzers(ad => ad
+						.Custom("windows_path_hierarchy_analyzer", ca => ca
+						  .Tokenizer("windows_path_hierarchy_tokenizer")
+						)
+					  )
+					  .Tokenizers(t => t
+						.PathHierarchy("windows_path_hierarchy_tokenizer", ph => ph
+						  .Delimiter('\\')
+						)
+					  )
+					)
+				  )
+				  .Mappings(m => m
+					.Map<Document>(mp => mp
+					  .AutoMap()
+					  .AllField(all => all
+						.Enabled(false)
+					  )
+					  .Properties(ps => ps
+						.Text(s => s
+						  .Name(n => n.Path)
+						  .Analyzer("windows_path_hierarchy_analyzer")
+						)
+						.Object<Attachment>(a => a
+						  .Name(n => n.Attachment)
+						  .AutoMap()
+						)
+					  )
+					)
+				  )
+				);
+
+				client.PutPipeline("attachments", p => p
+					.Description("Document attachment pipeline")
+					.Processors(pr => pr
+						.Attachment<Document>(a => a
+							.Field(f => f.Content)
+							.TargetField(f => f.Attachment)
+						)
+						.Remove<Document>(r => r
+							.Field(f => f.Content)
+						)
+					)
+				);
+			}
+			else Console.WriteLine("Mapping not required");
+			Console.WriteLine("CreateMapping process complete");
 		}
 }
