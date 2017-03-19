@@ -8,12 +8,16 @@ namespace ElasticSearch
 {
 	class MainClass
 	{
-
+		private static ElasticClient client;
+		private static string documentsIndex;
 		public static void Main(string[] args)
 		{
 			try
 			{
-
+				var node = new Uri("http://localhost:9200");
+				var settings = new ConnectionSettings(node);
+				client = new ElasticClient(settings);
+				documentsIndex = "jess_books";
 				string roothpath = "/Users/rkc/Projects/pdf_index/";
 
 				if (Directory.Exists(roothpath))
@@ -55,7 +59,7 @@ namespace ElasticSearch
 		{
 			Console.WriteLine("Processing file {0}", file);
 
-			//Todo
+			//todo
 
 			if(deletefile)File.Delete(file);
 			Console.WriteLine("File {0} processed", file);
