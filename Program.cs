@@ -25,6 +25,7 @@ namespace ElasticSearch
 					// This path is a directory
 					CreateMapping();
 					ProcessDirectory(roothpath);
+					SearchKeyword("technology");
 				}
 				else
 				{
@@ -72,7 +73,7 @@ namespace ElasticSearch
 			Console.WriteLine("File {0} processed", file);
 		}
 		
-				static void CreateMapping()
+		static void CreateMapping()
 		{
 			var mappingResponse = client.GetMapping<Document>((arg) => arg.Index(documentsIndex));
 			Console.WriteLine("Checking to see if mapping is required");
@@ -129,5 +130,27 @@ namespace ElasticSearch
 			}
 			else Console.WriteLine("Mapping not required");
 			Console.WriteLine("CreateMapping process complete");
+		}
+		
+		static void SearchKeyword(string keyword)
+		{
+			Console.WriteLine("\n\n==============================================================\n"
+			                  +"searching for keyword \"{0}\"",keyword);
+			var searchResponse = client.Search<Document>(s => s
+									  .Query(q => q
+										.Match(m => m
+										  .Field(a => a.Attachment.Content)
+										  .Query(keyword)
+										)
+									  )
+									 .Index(documentsIndex)
+									);
+			Console.WriteLine("Total possible matches found {0}", searchResponse.Total);
+			Console.WriteLine("Total hits found {0}", searchResponse.Hits.Count);
+
+			foreach (var hit in searchResponse.Hits)
+			{
+				Console.WriteLine("Hit ID: {0}\nHit score:{1:F3}\nFile:{2}\n\n", hit.Id,hit.Score,Path.GetFileName(hit.Source.Path));
+			}
 		}
 }
